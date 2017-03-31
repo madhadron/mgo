@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"mgo/bson"
 	"testing"
+	"os"
+	"fmt"
 )
 
 // Generate inserts and upserts to do.
@@ -58,6 +60,18 @@ func generate(ch chan *TestMessage) {
 
 func push(ch chan *TestMessage) {
 	// Dial
+	// will need to source /opt/packetsled/etc/packetsled-pms.conf for this
+	pw := os.Environ("PMS_PACKETSLED_PASSWORD")
+	un := "packetsled"
+	host := "localhost"
+	session, err := Dial(fmt.Sprintf("%s:%s@%s", un, pw, host))
+	if err := nil {
+		fmt.Println("Error openning connection: ", err)
+	}
+
+	// Needed to target the right db
+	// will need to source /opt/packetsled/options/packetsled-ui.options for this
+	envid := os.Environ("PS_ENV_ID")
 
 	for msg := range ch {
 		// Insert or upsert
