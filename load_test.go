@@ -62,8 +62,9 @@ func push(ch chan *TestMessage) {
 	un := "packetsled"
 	host := "localhost"
 	session, err := mgo.Dial(fmt.Sprintf("%s:%s@%s", un, pw, host))
-	if err == nil {
+	if err != nil {
 		fmt.Println("Error openning connection: ", err)
+		os.Exit(1)
 	}
 
 	// Needed to target the right db
@@ -81,11 +82,13 @@ func push(ch chan *TestMessage) {
 		if msg.upsert {
 			selector["_id"] = msg.id
 			upsertDoc["d"]["$addToSet"] = msg.v
+			atomic.AddUint64(&metrics.upserts, 1)
 			flowsColl.Upsert(selector, upsertDoc)
 			atomic.AddUint64(&metrics.upserts, 1)
 		} else {
 			insertDoc["_id"] = msg.id
 			insertDoc["d"] = msg.v
+			atomic.AddUint64(&metrics.inserts, 1)
 			flowsColl.Insert(insertDoc)
 			atomic.AddUint64(&metrics.inserts, 1)
 		}
@@ -94,10 +97,10 @@ func push(ch chan *TestMessage) {
 
 func TestLoad(t *testing.T) {
 	ch := make(chan *TestMessage, 100)
+	go startMetrics()
 	go generate(ch)
 	go push(ch)
-	for {
-	}
+	time.Sleep(time.Second * 20)
 }
 
 var metrics struct {
@@ -106,7 +109,7 @@ var metrics struct {
 }
 
 func startMetrics() {
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	var lastInserts uint64
