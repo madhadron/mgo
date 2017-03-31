@@ -57,7 +57,6 @@ func generate(ch chan *TestMessage) {
 }
 
 func push(ch chan *TestMessage) {
-	// Dial
 	// will need to source /opt/packetsled/etc/packetsled-pms.conf for this
 	pw := os.Getenv("PMS_PACKETSLED_PASSWORD")
 	un := "packetsled"
@@ -83,10 +82,12 @@ func push(ch chan *TestMessage) {
 			selector["_id"] = msg.id
 			upsertDoc["d"]["$addToSet"] = msg.v
 			flowsColl.Upsert(selector, upsertDoc)
+			atomic.AddUint64(&metrics.upserts, 1)
 		} else {
 			insertDoc["_id"] = msg.id
 			insertDoc["d"] = msg.v
 			flowsColl.Insert(insertDoc)
+			atomic.AddUint64(&metrics.inserts, 1)
 		}
 	}
 }
@@ -95,6 +96,8 @@ func TestLoad(t *testing.T) {
 	ch := make(chan *TestMessage, 100)
 	go generate(ch)
 	go push(ch)
+	for {
+	}
 }
 
 var metrics struct {
