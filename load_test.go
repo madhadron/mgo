@@ -63,7 +63,7 @@ func push(ch chan *TestMessage) {
 	un := "packetsled"
 	host := "localhost"
 	session, err := mgo.Dial(fmt.Sprintf("%s:%s@%s", un, pw, host))
-	if err == nil {
+	if err != nil {
 		fmt.Println("Error openning connection: ", err)
 	}
 
@@ -95,6 +95,7 @@ func TestLoad(t *testing.T) {
 	ch := make(chan *TestMessage, 100)
 	go generate(ch)
 	go push(ch)
+	time.Sleep(time.Second*10)
 }
 
 var metrics struct {
