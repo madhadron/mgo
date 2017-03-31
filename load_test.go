@@ -6,6 +6,7 @@ import (
 	"gopkg.in/mgo.v2-unstable/bson"
 	"math/rand"
 	"os"
+	"runtime/pprof"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -97,10 +98,18 @@ func push(ch chan *TestMessage) {
 
 func TestLoad(t *testing.T) {
 	ch := make(chan *TestMessage, 100)
+	f, err := os.Create("cpu.profile")
+	if err != nil {
+		fmt.Printf("Failed to open file to write: %v", err)
+		t.FailNow()
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
 	go startMetrics()
 	go generate(ch)
 	go push(ch)
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 3600)
 }
 
 var metrics struct {
