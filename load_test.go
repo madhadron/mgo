@@ -1,9 +1,12 @@
 package mgo
 
 import (
+	"fmt"
 	"math/rand"
 	"mgo/bson"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // Generate inserts and upserts to do.
@@ -12,11 +15,6 @@ type TestMessage struct {
 	upsert bool
 	id     bson.ObjectId
 	v      []byte
-}
-
-func randomBytes(n int) []byte {
-
-	return v
 }
 
 func generate(ch chan *TestMessage) {
@@ -68,4 +66,28 @@ func TestLoad(t *testing.T) {
 	ch := make(chan *TestMessage, 100)
 	go generate(ch)
 	go push(ch)
+}
+
+var metrics struct {
+	inserts uint64
+	upserts uint64
+}
+
+func startMetrics() {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	var lastInserts uint64
+	var lastUpserts uint64
+	for ts := range ticker.C {
+		inserts := atomic.LoadUint64(&metrics.inserts)
+		upserts := atomic.LoadUint64(&metrics.upserts)
+
+		dInserts := inserts - lastInserts
+		dUpserts := upserts - lastUpserts
+
+		fmt.Printf("%v\tinserts=%d\tupserts=%d\n", ts, dInserts, dUpserts)
+		lastInserts = inserts
+		lastUpserts = upserts
+	}
 }
