@@ -84,13 +84,11 @@ func push(ch chan *TestMessage) {
 			upsertDoc["d"]["$addToSet"] = msg.v
 			atomic.AddUint64(&metrics.upserts, 1)
 			flowsColl.Upsert(selector, upsertDoc)
-			atomic.AddUint64(&metrics.upserts, 1)
 		} else {
 			insertDoc["_id"] = msg.id
 			insertDoc["d"] = msg.v
 			atomic.AddUint64(&metrics.inserts, 1)
 			flowsColl.Insert(insertDoc)
-			atomic.AddUint64(&metrics.inserts, 1)
 		}
 	}
 }
