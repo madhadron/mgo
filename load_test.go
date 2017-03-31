@@ -65,7 +65,7 @@ func push(ch chan *TestMessage) {
 	un := "packetsled"
 	host := "localhost"
 	session, err := Dial(fmt.Sprintf("%s:%s@%s", un, pw, host))
-	if err := nil {
+	if err == nil {
 		fmt.Println("Error openning connection: ", err)
 	}
 
