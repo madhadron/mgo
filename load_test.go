@@ -2,8 +2,10 @@ package mgo
 
 import (
 	"fmt"
+	"gopkg.in/mgo.v2-unstable"
+	"gopkg.in/mgo.v2-unstable/bson"
 	"math/rand"
-	"mgo/bson"
+	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -56,9 +58,36 @@ func generate(ch chan *TestMessage) {
 
 func push(ch chan *TestMessage) {
 	// Dial
+	// will need to source /opt/packetsled/etc/packetsled-pms.conf for this
+	pw := os.Getenv("PMS_PACKETSLED_PASSWORD")
+	un := "packetsled"
+	host := "localhost"
+	session, err := mgo.Dial(fmt.Sprintf("%s:%s@%s", un, pw, host))
+	if err == nil {
+		fmt.Println("Error openning connection: ", err)
+	}
+
+	// Needed to target the right db
+	// will need to source /opt/packetsled/options/packetsled-ui.options for this
+	envid := os.Getenv("PS_ENV_ID")
+	dbName := fmt.Sprintf("probe_%s_0", envid)
+
+	flowsColl := session.DB(dbName).C("flows")
+	// eventsColl := session.DB(dbName).C("events")
+	selector := map[string]interface{}{"_id": bson.NewObjectId()}
+	insertDoc := map[string]interface{}{"_id": bson.NewObjectId(), "d": ""}
+	upsertDoc := map[string]map[string]interface{}{"d": map[string]interface{}{"$addToSet": ""}}
 
 	for msg := range ch {
-		// Insert or upsert
+		if msg.upsert {
+			selector["_id"] = msg.id
+			upsertDoc["d"]["$addToSet"] = msg.v
+			flowsColl.Upsert(selector, upsertDoc)
+		} else {
+			insertDoc["_id"] = msg.id
+			insertDoc["d"] = msg.v
+			flowsColl.Insert(insertDoc)
+		}
 	}
 }
 
