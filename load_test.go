@@ -82,10 +82,12 @@ func push(ch chan *TestMessage) {
 		if msg.upsert {
 			selector["_id"] = msg.id
 			upsertDoc["d"]["$addToSet"] = msg.v
+			atomic.AddUint64(&metrics.upserts,1)
 			flowsColl.Upsert(selector, upsertDoc)
 		} else {
 			insertDoc["_id"] = msg.id
 			insertDoc["d"] = msg.v
+			atomic.AddUint64(&metrics.inserts,1)
 			flowsColl.Insert(insertDoc)
 		}
 	}
@@ -93,9 +95,10 @@ func push(ch chan *TestMessage) {
 
 func TestLoad(t *testing.T) {
 	ch := make(chan *TestMessage, 100)
+	go startMetrics()
 	go generate(ch)
 	go push(ch)
-	time.Sleep(time.Second*10)
+	time.Sleep(time.Second*20)
 }
 
 var metrics struct {
